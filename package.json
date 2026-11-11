@@ -1,0 +1,21 @@
+{
+  "name": "sticky-monitor",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "dotnet publish src/StickyMonitor.App/StickyMonitor.App.csproj -c Release -r win-x64 --self-contained true -o dist/app",
+    "icons:build": "node scripts/generate-icons.mjs",
+    "build:with-icons": "npm run icons:build && npm run build",
+    "package": "powershell -ExecutionPolicy Bypass -File scripts/create-package.ps1",
+    "installer": "powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1",
+    "run": "dotnet run --project src/StickyMonitor.App/StickyMonitor.App.csproj",
+    "shortcuts:install": "powershell -ExecutionPolicy Bypass -File scripts/install-shortcuts.ps1",
+    "shortcuts:uninstall": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-shortcuts.ps1"
+  },
+  "devDependencies": {
+    "lucide-static": "^1.7.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5"
+  }
+}

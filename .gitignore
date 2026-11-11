@@ -1,0 +1,16 @@
+bin/
+obj/
+.vs/
+node_modules/
+dist/
+packages/
+
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+*.temp
+
+Thumbs.db
+.DS_Store

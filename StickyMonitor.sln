@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{FFDCCED3-98DE-4CA1-A35A-C95CC056388B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StickyMonitor.App", "src\StickyMonitor.App\StickyMonitor.App.csproj", "{DC714ACC-F5F6-4CAA-A410-15CA15BFF285}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC714ACC-F5F6-4CAA-A410-15CA15BFF285}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC714ACC-F5F6-4CAA-A410-15CA15BFF285}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC714ACC-F5F6-4CAA-A410-15CA15BFF285}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC714ACC-F5F6-4CAA-A410-15CA15BFF285}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DC714ACC-F5F6-4CAA-A410-15CA15BFF285} = {FFDCCED3-98DE-4CA1-A35A-C95CC056388B}
+	EndGlobalSection
+EndGlobal
