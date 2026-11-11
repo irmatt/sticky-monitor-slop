@@ -29,10 +29,18 @@ jobs:
           if ("${{ github.ref_type }}" -eq "tag") {
             $version = "${{ github.ref_name }}".TrimStart("v")
           } else {
-            $version = "0.0.0-dev"
+            # manual run: unique, and still a valid version for the installer
+            $version = "0.0.${{ github.run_number }}"
           }
+
+          # Inno Setup's VersionInfoVersion only accepts 2-4 numeric parts, so a tag like
+          # v1.2.0-beta1 keeps its label in the file name but stamps a numeric version.
+          $numeric = ($version -split '-')[0]
+          if ($numeric -notmatch '^\d+(\.\d+){1,3}$') { $numeric = '0.0.0' }
+
           "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          Write-Host "version: $version"
+          "VERSION_NUMERIC=$numeric" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "version: $version (numeric: $numeric)"
 
       - name: Publish app
         shell: pwsh
@@ -50,7 +58,7 @@ jobs:
         run: |
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
-          & $iscc "/DMyAppVersion=$env:VERSION" installer\StickyMonitor.iss
+          & $iscc "/DMyAppVersion=$env:VERSION_NUMERIC" installer\StickyMonitor.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
 
       - name: Build portable zip
@@ -89,9 +97,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ github.ref_name }}"
-          gh release create $tag `
-            --title "Sticky Monitor $tag" `
-            --generate-notes `
-            "packages/StickyMonitor-Setup-$env:VERSION.exe" `
-            "packages/StickyMonitor-Portable-$env:VERSION.zip" `
+          $files = @(
+            "packages/StickyMonitor-Setup-$env:VERSION.exe"
+            "packages/StickyMonitor-Portable-$env:VERSION.zip"
             "packages/SHA256SUMS.txt"
+          )
+
+          # A release created through the API (or a re-run) also pushes the tag, so the run that
+          # the tag triggers fires when the release already exists. Upload to it instead of failing.
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "release $tag already exists - uploading assets"
+            gh release upload $tag @files --clobber
+          } else {
+            gh release create $tag --title "Sticky Monitor $tag" --generate-notes @files
+          }
+          if ($LASTEXITCODE -ne 0) { throw "publishing the release failed" }
