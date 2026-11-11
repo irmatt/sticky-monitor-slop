@@ -4,6 +4,29 @@ Sticky Monitor is a native Windows desktop utility that lets you mark specific d
 
 Windows does not support true per-monitor virtual desktops, so this app simulates the behavior by pinning windows and reapplying sticky state when needed.
 
+## Download
+
+Grab the latest from [Releases](https://github.com/irmatt/sticky-monitor-slop/releases/latest):
+
+| Asset | Use it when |
+|---|---|
+| `StickyMonitor-Setup-<version>.exe` | Normal use. Per-user install, **no admin rights**, Start Menu shortcut and an uninstaller entry. ~53 MB because the .NET 8 runtime is bundled. |
+| `StickyMonitor-Portable-<version>.zip` | You want no installer. Unzip anywhere and run `StickyMonitor.App.exe`. |
+| `SHA256SUMS.txt` | Verify a download. |
+
+The downloads are **unsigned** (no code-signing certificate), so Windows SmartScreen shows "Windows protected your PC" on first run: choose **More info → Run anyway**. Settings and logs live in `%LOCALAPPDATA%\StickyMonitor` and survive an uninstall; the uninstaller closes the running app, removes the program files, the Start Menu shortcut and the launch-at-login shortcut.
+
+## Building a release
+
+Tagging is enough - the [release workflow](.github/workflows/release.yml) builds the installer and portable zip on a Windows runner and attaches them to the GitHub release:
+
+```powershell
+git tag v1.1.1
+git push origin v1.1.1
+```
+
+Locally, `npm run installer` needs [Inno Setup 6](https://jrsoftware.org/isinfo.php); `scripts/test-installer.ps1` runs install → launch → uninstall → reinstall on the current machine.
+
 ## Who this is for
 
 Sticky Monitor is useful if you:

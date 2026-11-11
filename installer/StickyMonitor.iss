@@ -2,7 +2,9 @@
 ; Per-user install (no admin required), Start Menu shortcut, uninstaller entry.
 
 #define MyAppName "Sticky Monitor"
-#define MyAppVersion "1.1.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.1.0"
+#endif
 #define MyAppPublisher "Sticky Monitor"
 #define MyAppExeName "StickyMonitor.App.exe"
 
@@ -11,13 +13,15 @@ AppId={{56029fb9-dd62-49fa-975e-f31a006df3ca}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppMutex=Local\StickyMonitor.App.v1
+AppPublisherURL=https://github.com/irmatt/sticky-monitor-slop
+AppSupportURL=https://github.com/irmatt/sticky-monitor-slop/issues
+AppUpdatesURL=https://github.com/irmatt/sticky-monitor-slop/releases
 DefaultDirName={localappdata}\Programs\StickyMonitor
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\packages
-OutputBaseFilename=StickyMonitor-Setup
+OutputBaseFilename=StickyMonitor-Setup-{#MyAppVersion}
 SetupIconFile=..\assets\app-icon.ico
 UninstallDisplayIcon={app}\app-icon.ico
 UninstallDisplayName={#MyAppName}
@@ -27,6 +31,10 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} installer
+VersionInfoProductName={#MyAppName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -43,3 +51,35 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+; The app creates its own "launch at login" shortcut; Inno does not know about it.
+Type: files; Name: "{userstartup}\Sticky Monitor.lnk"
+
+[Code]
+// Sticky Monitor is a tray app, so it is routinely running when someone installs an
+// update. It does not register with the Restart Manager, so AppMutex + CloseApplications
+// only produced a prompt that a silent install answered with "Cancel". Close it outright
+// instead, both for install and for uninstall, so locked files can be replaced/removed.
+procedure StopStickyMonitor();
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM StickyMonitor.App.exe /F', '',
+       SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(500);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  StopStickyMonitor();
+  Result := '';
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    StopStickyMonitor();
+  end;
+end;

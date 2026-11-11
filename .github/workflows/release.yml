@@ -1,0 +1,97 @@
+name: Release
+
+# Tagging is the release trigger: `git tag v1.1.1 && git push origin v1.1.1`
+# Builds the self-contained app, the Inno Setup installer and a portable zip, then attaches
+# them to a GitHub release together with checksums.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $version = "0.0.0-dev"
+          }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "version: $version"
+
+      - name: Publish app
+        shell: pwsh
+        run: |
+          dotnet publish src/StickyMonitor.App/StickyMonitor.App.csproj `
+            -c Release -r win-x64 --self-contained true -o dist/app
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc "/DMyAppVersion=$env:VERSION" installer\StickyMonitor.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+
+      - name: Build portable zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/app/* `
+            -DestinationPath "packages/StickyMonitor-Portable-$env:VERSION.zip" -Force
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          $files = @(
+            "packages/StickyMonitor-Setup-$env:VERSION.exe",
+            "packages/StickyMonitor-Portable-$env:VERSION.zip"
+          )
+          $lines = foreach ($f in $files) {
+            $hash = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+            "$hash  $(Split-Path $f -Leaf)"
+          }
+          $lines | Out-File -FilePath packages/SHA256SUMS.txt -Encoding utf8
+          Get-Content packages/SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sticky-monitor-${{ env.VERSION }}
+          path: |
+            packages/StickyMonitor-Setup-*.exe
+            packages/StickyMonitor-Portable-*.zip
+            packages/SHA256SUMS.txt
+
+      - name: Create GitHub release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          gh release create $tag `
+            --title "Sticky Monitor $tag" `
+            --generate-notes `
+            "packages/StickyMonitor-Setup-$env:VERSION.exe" `
+            "packages/StickyMonitor-Portable-$env:VERSION.zip" `
+            "packages/SHA256SUMS.txt"
